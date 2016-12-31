@@ -1,0 +1,4 @@
+.idea
+src/test/resources/application.properties
+.gradle
+settings.gradle
