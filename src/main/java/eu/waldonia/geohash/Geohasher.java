@@ -1,11 +1,13 @@
 package eu.waldonia.geohash;
 
 /**
+ * This is an implementation of the Niemeyer Geohash algorithm described at
+ * https://en.wikipedia.org/wiki/Geohash
  * @author sih
  */
 public class Geohasher {
 
-    private static final int DEFAULT_PRECISION = 6;
+    private static final int MIN_PRECISION = 3;
     private static final int MAX_PRECISION = 12;
     private static final int WORD_LENGTH = 5;
 
@@ -19,15 +21,32 @@ public class Geohasher {
             'g', 'h', 'j', 'k', 'm', 'n', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z' };
 
 
+    /**
+     *
+     * @param longitude The decimal longitude of the point to classify
+     * @param latitude The decimal latitude of the point to classify
+     * @param precision How precise the geohash should be. The more precise the geohash, the more characters in the hash
+     * @return The geohash value for this coordinate
+     */
     public String hash(Double longitude, Double latitude, int precision) {
+
+        validate(longitude,latitude);
+
+        int revisedPrecision = Math.min((Math.max(MIN_PRECISION, precision)),MAX_PRECISION);
+
         StringBuffer buffy = new StringBuffer();
-        int iterations = precision * WORD_LENGTH;
+
+        // turn this in to N 5-bit "words" so we can encode to base32
+        int iterations = revisedPrecision * WORD_LENGTH;
         boolean[] interleavings = interleave(longitude, latitude, iterations);
-        for (int i = 0; i < precision; i++) {
+
+        // split the total flag array in to 5-bit chunks ...
+        for (int i = 0; i < revisedPrecision; i++) {
             boolean[] word = new boolean[WORD_LENGTH];
             for (int j = 0; j < WORD_LENGTH; j++) {
                 word[j] = interleavings[i*WORD_LENGTH+j];
             }
+            // ... and turn this in to a base32 encoded char
             int index = toBase2(word);
             buffy.append(BASE32[index]);
         }
@@ -35,7 +54,24 @@ public class Geohasher {
         return buffy.toString();
     }
 
+    private void validate(Double longitude, Double latitude) {
+        if (longitude < -180D || longitude > 180D) {
+            throw new IllegalArgumentException("Longitude is invalid. Should be between (-180D,180D) was "+longitude);
+        }
+        if (latitude < -90D || latitude > 90D) {
+            throw new IllegalArgumentException("Latitude is invalid. Should be between (-90D,90D) was "+latitude);
+        }
+    }
 
+
+    /**
+     * This performs the hash calculation by in turn classifying the longitude
+     * and latitude as per the geohash algorithm (see https://en.wikipedia.org/wiki/Geohash)
+     * @param longitude The decimal longitude of the point to classify
+     * @param latitude The decimal latitude of the point to classify
+     * @param iterations The number of classifications to perform
+     * @return The array of interleaved classifications
+     */
     boolean[] interleave(Double longitude, Double latitude, int iterations) {
 
         boolean[] interleavings = new boolean[iterations];
@@ -60,6 +96,16 @@ public class Geohasher {
         return interleavings;
     }
 
+    /**
+     * Each item in the flags array represents a bit in a base 2 number.
+     * <p/>
+     * So for example {true, true, false, false, true} would represent the
+     * binary number x11001, which is 25 in decimal.
+     * <p/>
+     * This method performs that conversion.
+     * @param flags An array of booleans representing bits in a binary number
+     * @return The decimal value of this "binary" representation
+     */
     int toBase2(boolean[] flags) {
         int result = 0;
         int exp = flags.length-1;

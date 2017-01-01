@@ -4,6 +4,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static junit.framework.TestCase.assertEquals;
+import static junit.framework.TestCase.fail;
 
 /**
  * @author sih
@@ -67,6 +68,67 @@ public class GeohasherTest {
 
         String hash = geohasher.hash(longitude,latitude,precision);
         assertEquals("u4pruydqqvj",hash);
+    }
+
+    @Test
+    public void hashShouldRespectMinimumPrecision() {
+        Double latitude = 57.64911D;
+        Double longitude = 10.40744D;
+
+        int precision = 1;
+
+        String hash = geohasher.hash(longitude,latitude,precision);
+        assertEquals("u4p",hash);
+
+    }
+
+    @Test
+    public void hashShouldRespectMaximumPrecision() {
+        Double latitude = 57.64911D;
+        Double longitude = 10.40744D;
+
+        int precision = 100;
+
+        String hash = geohasher.hash(longitude,latitude,precision);
+        assertEquals("u4pruydqqvj8",hash);
+
+    }
+
+
+    @Test
+    public void hashShouldValidateLongitude() {
+        try {
+            geohasher.hash(-1000D,34D,5);
+            fail("Should have thrown an IAE");
+        }
+        catch(IllegalArgumentException iae) {
+            // all good
+        }
+        try {
+            geohasher.hash(1000D,34D,5);
+            fail("Should have thrown an IAE");
+        }
+        catch(IllegalArgumentException iae) {
+            // all good
+        }
+    }
+
+    @Test
+    public void hashShouldValidateLatitude() {
+        try {
+            geohasher.hash(-100D,344D,5);
+            fail("Should have thrown an IAE");
+        }
+        catch(IllegalArgumentException iae) {
+            // all good
+        }
+        try {
+            geohasher.hash(-100D,344D,5);
+            fail("Should have thrown an IAE");
+        }
+        catch(IllegalArgumentException iae) {
+            // all good
+        }
     }
 
 }
